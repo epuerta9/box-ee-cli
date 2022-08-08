@@ -14,10 +14,8 @@ build-cli:
 	go build -ldflags="-X main.BuildVersion=$(version)" && \
 	go build -o bin/boxee 
 
-build-cli-local:
-	go build -ldflags="-X main.BuildVersion=$(version)" && \
-	go build -o boxee && \
-	mv pplace ~/.local/bin
+install-cli: build-cli
+	mv bin/boxee ~/.local/bin
 
 generate-code:
 	oapi-codegen -old-config-style --generate types,client -package main $(spec) > oapi_client.gen.go

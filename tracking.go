@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"io/ioutil"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -37,6 +38,7 @@ func trackingAdd() *cobra.Command {
 		add a tracking. Required flags include tracking name and tracking type`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			//add a tracking
+			var addResp StandardResponse
 			if err := checkEmptyFlags([]string{trackingNumber, deviceId}); err != nil {
 				return err
 			}
@@ -50,19 +52,19 @@ func trackingAdd() *cobra.Command {
 			}
 			ctx := context.TODO()
 
+			client.RequestEditors = append(client.RequestEditors, setBoxeeAuthHeaders(cParams.SessionToken))
 			resp, err := client.AddTracking(ctx, TrackingRequestItem{
 				DeviceId:       deviceId,
 				TrackingNumber: trackingNumber,
 			})
-			//resp, err := httpclient.NewPClient().TrackingPost(httpclient.TrackingRequest{
-			//	TrackingNumber: trackingNumber,
-			//	DeviceID:       deviceId,
-			//})
 			if err != nil {
 				return err
 			}
-			json.NewEncoder(os.Stdout).Encode(resp)
+			body, _ := ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+			json.Unmarshal(body, &addResp)
 
+			json.NewEncoder(os.Stdout).Encode(addResp)
 			return nil
 		},
 	}
@@ -81,6 +83,7 @@ func trackingDelete() *cobra.Command {
 		delete a tracking. Required flags include tracking id`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			//update a tracking
+			var deleteResp StandardResponse
 			if err := checkEmptyFlags([]string{trackingID}); err != nil {
 				return err
 			}
@@ -94,17 +97,18 @@ func trackingDelete() *cobra.Command {
 			}
 			ctx := context.TODO()
 
-			res, err := client.DeleteTracking(ctx, &DeleteTrackingParams{
+			client.RequestEditors = append(client.RequestEditors, setBoxeeAuthHeaders(cParams.SessionToken))
+			resp, err := client.DeleteTracking(ctx, &DeleteTrackingParams{
 				TrackingId: trackingID,
 			})
-			//res, err := httpclient.NewPClient().TrackingDelete(httpclient.TrackingRequest{
-			//	TrackingID: trackingID,
-			//})
 			if err != nil {
 				return err
 			}
-			json.NewEncoder(os.Stdout).Encode(res)
+			body, _ := ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+			json.Unmarshal(body, &deleteResp)
 
+			json.NewEncoder(os.Stdout).Encode(deleteResp)
 			return nil
 		},
 	}
@@ -118,6 +122,7 @@ func trackingList() *cobra.Command {
 		Use:   "list",
 		Short: "list all trackings",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			var listResp ListTrackings
 			if err := readConfig(); err != nil {
 				return err
 			}
@@ -129,18 +134,18 @@ func trackingList() *cobra.Command {
 
 			}
 			ctx := context.TODO()
-
+			client.RequestEditors = append(client.RequestEditors, setBoxeeAuthHeaders(cParams.SessionToken))
 			resp, err := client.ListTrackings(ctx, &ListTrackingsParams{
 				DeviceId: deviceId,
 			})
-			//	pp := httpclient.NewPClient()
-			//	resp, err := pp.TrackingList(httpclient.TrackingRequest{
-			//		DeviceID: deviceId,
-			//	})
 			if err != nil {
 				return err
 			}
-			json.NewEncoder(os.Stdout).Encode(resp)
+			body, _ := ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+			json.Unmarshal(body, &listResp)
+
+			json.NewEncoder(os.Stdout).Encode(listResp)
 			return nil
 		},
 	}

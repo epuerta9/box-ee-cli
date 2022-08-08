@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -40,6 +40,7 @@ func deviceAdd() *cobra.Command {
 		Long: `
 		add a device. Required flags include device name and device type`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			var createdResponse DeviceCreatedResponse
 			//add a device
 			if err := checkEmptyFlags([]string{deviceName, deviceType}); err != nil {
 				return err
@@ -53,7 +54,7 @@ func deviceAdd() *cobra.Command {
 
 			}
 			ctx := context.TODO()
-
+			client.RequestEditors = append(client.RequestEditors, setBoxeeAuthHeaders(cParams.SessionToken))
 			resp, err := client.AddDevice(ctx, DeviceRequestAdd{
 				DeviceName: deviceName,
 				DeviceType: deviceType,
@@ -61,16 +62,11 @@ func deviceAdd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			body, _ := ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+			json.Unmarshal(body, &createdResponse)
 
-			//			resp, err := httpclient.NewPClient().DevicePost(httpclient.DeviceRequest{
-			//				DeviceName: deviceName,
-			//				DeviceType: deviceType,
-			//			})
-			//			if err != nil {
-			//				return err
-			//			}
-			fmt.Println(resp)
-			json.NewEncoder(os.Stdout).Encode(resp)
+			json.NewEncoder(os.Stdout).Encode(createdResponse)
 
 			return nil
 		},
@@ -84,11 +80,12 @@ func deviceAdd() *cobra.Command {
 func deviceGenerateKeys() *cobra.Command {
 	deviceGenerateCmd := &cobra.Command{
 		Use:   "generate",
-		Short: "generate a client key for device",
+		Short: "generate a device api key",
 		Long: `
-		generate a device client key used to setup the package place device. Required flags include device id`,
+		generate a device client key used to setup the box-ee device. Required flags include device id`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			//update a device
+			//generate device api key
+			var keyGenResp DeviceKeyGenResponse
 			if err := checkEmptyFlags([]string{deviceId}); err != nil {
 				return err
 			}
@@ -98,21 +95,23 @@ func deviceGenerateKeys() *cobra.Command {
 
 			cParams := readValuesFromConfig()
 			client, err := NewClient(cParams.Address)
+			if err != nil {
+				return err
+			}
 			ctx := context.TODO()
+			client.RequestEditors = append(client.RequestEditors, setBoxeeAuthHeaders(cParams.SessionToken))
+
 			resp, err := client.GenKey(ctx, DeviceRequestKeyGen{
 				DeviceId: deviceId,
 			})
 
-			//			resp, err := httpclient.NewPClient().DeviceGenerate(httpclient.DeviceRequest{
-			//				DeviceID: deviceId,
-			//			})
-			//			if err != nil {
-			//				return err
-			//}
 			if err != nil {
 				return err
 			}
-			json.NewEncoder(os.Stdout).Encode(resp)
+			body, _ := ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+			json.Unmarshal(body, &keyGenResp)
+			json.NewEncoder(os.Stdout).Encode(keyGenResp)
 			return nil
 		},
 	}
@@ -128,6 +127,7 @@ func deviceDelete() *cobra.Command {
 		delete a device. Required flags include device id`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			//update a device
+			var deleteResp StandardResponse
 			if err := checkEmptyFlags([]string{deviceId}); err != nil {
 				return err
 			}
@@ -142,20 +142,18 @@ func deviceDelete() *cobra.Command {
 
 			}
 			ctx := context.TODO()
+			client.RequestEditors = append(client.RequestEditors, setBoxeeAuthHeaders(cParams.SessionToken))
+
 			resp, err := client.DeleteDevice(ctx, &DeleteDeviceParams{
 				DeviceId: deviceId,
 			})
-			//			resp, err := httpclient.NewPClient().DeviceDelete(httpclient.DeviceRequest{
-			//				DeviceID: deviceId,
-			//			})
-			//			if err != nil {
-			//				return err
-			//			}
-
 			if err != nil {
 				return err
 			}
-			json.NewEncoder(os.Stdout).Encode(resp)
+			body, _ := ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+			json.Unmarshal(body, &deleteResp)
+			json.NewEncoder(os.Stdout).Encode(deleteResp)
 			return nil
 		},
 	}
@@ -172,6 +170,7 @@ func deviceUpdate() *cobra.Command {
 		update a device. Required flags include device id`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			//update a device
+			var updateResp StandardResponse
 			if err := checkEmptyFlags([]string{toName, deviceId}); err != nil {
 				return err
 			}
@@ -186,19 +185,19 @@ func deviceUpdate() *cobra.Command {
 
 			}
 			ctx := context.TODO()
+			client.RequestEditors = append(client.RequestEditors, setBoxeeAuthHeaders(cParams.SessionToken))
 			resp, err := client.UpdateDevice(ctx, DeviceRequestPatch{
 				DeviceId: deviceId,
 				ToName:   toName,
 			})
-			//			resp, err := httpclient.NewPClient().DeviceUpdate(httpclient.DeviceRequest{
-			//				DeviceID: deviceId,
-			//				ToName:   toName,
-			//			})
 			if err != nil {
 				json.NewEncoder(os.Stdout).Encode(err)
 				return err
 			}
-			json.NewEncoder(os.Stdout).Encode(resp)
+			body, _ := ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+			json.Unmarshal(body, &updateResp)
+			json.NewEncoder(os.Stdout).Encode(updateResp)
 
 			return nil
 		},
@@ -214,6 +213,8 @@ func deviceList() *cobra.Command {
 		Use:   "list",
 		Short: "list all devices",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			//listing out all devices
+			var listResp ListDevices
 			if err := readConfig(); err != nil {
 				return err
 			}
@@ -225,14 +226,15 @@ func deviceList() *cobra.Command {
 
 			}
 			ctx := context.TODO()
-			//pp := httpclient.NewPClient()
+			client.RequestEditors = append(client.RequestEditors, setBoxeeAuthHeaders(cParams.SessionToken))
 			resp, err := client.ListDevices(ctx)
-
-			//resp, err := pp.DeviceList()
 			if err != nil {
 				return err
 			}
-			json.NewEncoder(os.Stdout).Encode(resp)
+			body, _ := ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+			json.Unmarshal(body, &listResp)
+			json.NewEncoder(os.Stdout).Encode(listResp)
 			return nil
 		},
 	}

@@ -63,6 +63,7 @@ func setBoxeeAuthHeaders(token string) RequestEditorFn {
 		if token == "" {
 			return errors.New("empty token in X-Boxee-Auth header")
 		}
+		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("X-Boxee-Auth", token)
 		return nil
 	}

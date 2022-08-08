@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -28,12 +29,27 @@ func getLoginCmd() *cobra.Command {
 
 			client.RequestEditors = append(client.RequestEditors, setRequestHeaders())
 			ctx := context.TODO()
-			token, err := client.AdminLogin(ctx, AdminLoginRequest{
+			resp, err := client.AdminLogin(ctx, AdminLoginRequest{
 				Email:    cParams.Email,
 				Password: password,
 			})
-			json.NewEncoder(os.Stdout).Encode(token)
-			return nil
+			if err != nil {
+				json.NewEncoder(os.Stdout).Encode(AdminLoginResponseItem{
+					Msg:          err.Error(),
+					SessionToken: "",
+					StatusCode:   resp.StatusCode,
+				})
+			}
+			body, _ := ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+			var loginResponse AdminLoginResponseItem
+			json.Unmarshal(body, &loginResponse)
+			json.NewEncoder(os.Stdout).Encode(loginResponse)
+
+			//write to config
+			viper.Set("session_token", loginResponse.SessionToken)
+
+			return viper.WriteConfig()
 
 		},
 	}
