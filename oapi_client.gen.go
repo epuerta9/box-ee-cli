@@ -125,11 +125,6 @@ type TrackingRequestItem struct {
 	TrackingNumber string `json:"tracking_number"`
 }
 
-// AdminDeleteRequest defines model for adminDeleteRequest.
-type AdminDeleteRequest struct {
-	Email string `json:"email"`
-}
-
 // AdminLoginRequest defines model for adminLoginRequest.
 type AdminLoginRequest struct {
 	Email    string `json:"email"`
@@ -189,9 +184,6 @@ type AddDeviceJSONBody = DeviceRequestAdd
 // GenKeyJSONBody defines parameters for GenKey.
 type GenKeyJSONBody = DeviceRequestKeyGen
 
-// AdminDeleteJSONBody defines parameters for AdminDelete.
-type AdminDeleteJSONBody = AdminDeleteRequest
-
 // AdminLoginJSONBody defines parameters for AdminLogin.
 type AdminLoginJSONBody = AdminLoginRequest
 
@@ -233,9 +225,6 @@ type AddDeviceJSONRequestBody = AddDeviceJSONBody
 
 // GenKeyJSONRequestBody defines body for GenKey for application/json ContentType.
 type GenKeyJSONRequestBody = GenKeyJSONBody
-
-// AdminDeleteJSONRequestBody defines body for AdminDelete for application/json ContentType.
-type AdminDeleteJSONRequestBody = AdminDeleteJSONBody
 
 // AdminLoginJSONRequestBody defines body for AdminLogin for application/json ContentType.
 type AdminLoginJSONRequestBody = AdminLoginJSONBody
@@ -348,11 +337,6 @@ type ClientInterface interface {
 
 	// ListDevices request
 	ListDevices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// AdminDelete request with any body
-	AdminDeleteWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	AdminDelete(ctx context.Context, body AdminDeleteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// AdminLogin request with any body
 	AdminLoginWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -494,30 +478,6 @@ func (c *Client) GenKey(ctx context.Context, body GenKeyJSONRequestBody, reqEdit
 
 func (c *Client) ListDevices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListDevicesRequest(c.Server)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) AdminDeleteWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAdminDeleteRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) AdminDelete(ctx context.Context, body AdminDeleteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAdminDeleteRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -936,46 +896,6 @@ func NewListDevicesRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
-// NewAdminDeleteRequest calls the generic AdminDelete builder with application/json body
-func NewAdminDeleteRequest(server string, body AdminDeleteJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewAdminDeleteRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewAdminDeleteRequestWithBody generates requests for AdminDelete with any type of body
-func NewAdminDeleteRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/self-service/delete")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
 // NewAdminLoginRequest calls the generic AdminLogin builder with application/json body
 func NewAdminLoginRequest(server string, body AdminLoginJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -1347,11 +1267,6 @@ type ClientWithResponsesInterface interface {
 	// ListDevices request
 	ListDevicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListDevicesResponse, error)
 
-	// AdminDelete request with any body
-	AdminDeleteWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AdminDeleteResponse, error)
-
-	AdminDeleteWithResponse(ctx context.Context, body AdminDeleteJSONRequestBody, reqEditors ...RequestEditorFn) (*AdminDeleteResponse, error)
-
 	// AdminLogin request with any body
 	AdminLoginWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AdminLoginResponse, error)
 
@@ -1387,6 +1302,7 @@ type ClientValidateResponse struct {
 	HTTPResponse *http.Response
 	JSON200      *BoxeeClientValidateResponse
 	JSON400      *StandardResponse
+	JSON401      *StandardResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -1409,6 +1325,7 @@ type DeleteDeviceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *DeviceCreatedResponse
+	JSON401      *StandardResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -1432,6 +1349,7 @@ type FindDeviceResponse struct {
 	HTTPResponse *http.Response
 	JSON200      *[]DeviceGetResponse
 	JSON400      *StandardResponse
+	JSON401      *StandardResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -1455,6 +1373,7 @@ type UpdateDeviceResponse struct {
 	HTTPResponse *http.Response
 	JSON200      *DeviceStandardResponse
 	JSON400      *StandardResponse
+	JSON401      *StandardResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -1478,6 +1397,7 @@ type AddDeviceResponse struct {
 	HTTPResponse *http.Response
 	JSON201      *DeviceCreatedResponse
 	JSON400      *StandardResponse
+	JSON401      *StandardResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -1500,6 +1420,7 @@ type GenKeyResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON201      *DeviceKeyGenResponse
+	JSON401      *StandardResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -1523,6 +1444,7 @@ type ListDevicesResponse struct {
 	HTTPResponse *http.Response
 	JSON200      *ListDevices
 	JSON400      *StandardResponse
+	JSON401      *StandardResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -1535,29 +1457,6 @@ func (r ListDevicesResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListDevicesResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type AdminDeleteResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *StandardResponse
-	JSON400      *StandardResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r AdminDeleteResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r AdminDeleteResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1638,6 +1537,7 @@ type DeleteTrackingResponse struct {
 	HTTPResponse *http.Response
 	JSON200      *StandardResponse
 	JSON400      *StandardResponse
+	JSON401      *StandardResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -1661,6 +1561,7 @@ type GetTrackingResponse struct {
 	HTTPResponse *http.Response
 	JSON200      *TrackingGetResponse
 	JSON400      *StandardResponse
+	JSON401      *StandardResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -1684,6 +1585,7 @@ type AddTrackingResponse struct {
 	HTTPResponse *http.Response
 	JSON201      *StandardResponse
 	JSON400      *StandardResponse
+	JSON401      *StandardResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -1706,6 +1608,7 @@ type ListTrackingsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *ListTrackings
+	JSON401      *StandardResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -1809,23 +1712,6 @@ func (c *ClientWithResponses) ListDevicesWithResponse(ctx context.Context, reqEd
 		return nil, err
 	}
 	return ParseListDevicesResponse(rsp)
-}
-
-// AdminDeleteWithBodyWithResponse request with arbitrary body returning *AdminDeleteResponse
-func (c *ClientWithResponses) AdminDeleteWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AdminDeleteResponse, error) {
-	rsp, err := c.AdminDeleteWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseAdminDeleteResponse(rsp)
-}
-
-func (c *ClientWithResponses) AdminDeleteWithResponse(ctx context.Context, body AdminDeleteJSONRequestBody, reqEditors ...RequestEditorFn) (*AdminDeleteResponse, error) {
-	rsp, err := c.AdminDelete(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseAdminDeleteResponse(rsp)
 }
 
 // AdminLoginWithBodyWithResponse request with arbitrary body returning *AdminLoginResponse
@@ -1951,6 +1837,13 @@ func ParseClientValidateResponse(rsp *http.Response) (*ClientValidateResponse, e
 		}
 		response.JSON400 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest StandardResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
 	}
 
 	return response, nil
@@ -1976,6 +1869,13 @@ func ParseDeleteDeviceResponse(rsp *http.Response) (*DeleteDeviceResponse, error
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest StandardResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
 
 	}
 
@@ -2010,6 +1910,13 @@ func ParseFindDeviceResponse(rsp *http.Response) (*FindDeviceResponse, error) {
 		}
 		response.JSON400 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest StandardResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
 	}
 
 	return response, nil
@@ -2042,6 +1949,13 @@ func ParseUpdateDeviceResponse(rsp *http.Response) (*UpdateDeviceResponse, error
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest StandardResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
 
 	}
 
@@ -2076,6 +1990,13 @@ func ParseAddDeviceResponse(rsp *http.Response) (*AddDeviceResponse, error) {
 		}
 		response.JSON400 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest StandardResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
 	}
 
 	return response, nil
@@ -2101,6 +2022,13 @@ func ParseGenKeyResponse(rsp *http.Response) (*GenKeyResponse, error) {
 			return nil, err
 		}
 		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest StandardResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
 
 	}
 
@@ -2135,38 +2063,12 @@ func ParseListDevicesResponse(rsp *http.Response) (*ListDevicesResponse, error) 
 		}
 		response.JSON400 = &dest
 
-	}
-
-	return response, nil
-}
-
-// ParseAdminDeleteResponse parses an HTTP response from a AdminDeleteWithResponse call
-func ParseAdminDeleteResponse(rsp *http.Response) (*AdminDeleteResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &AdminDeleteResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest StandardResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest StandardResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
+		response.JSON401 = &dest
 
 	}
 
@@ -2300,6 +2202,13 @@ func ParseDeleteTrackingResponse(rsp *http.Response) (*DeleteTrackingResponse, e
 		}
 		response.JSON400 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest StandardResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
 	}
 
 	return response, nil
@@ -2332,6 +2241,13 @@ func ParseGetTrackingResponse(rsp *http.Response) (*GetTrackingResponse, error) 
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest StandardResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
 
 	}
 
@@ -2366,6 +2282,13 @@ func ParseAddTrackingResponse(rsp *http.Response) (*AddTrackingResponse, error) 
 		}
 		response.JSON400 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest StandardResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
 	}
 
 	return response, nil
@@ -2391,6 +2314,13 @@ func ParseListTrackingsResponse(rsp *http.Response) (*ListTrackingsResponse, err
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest StandardResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
 
 	}
 

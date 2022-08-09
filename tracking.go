@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -122,7 +123,6 @@ func trackingList() *cobra.Command {
 		Use:   "list",
 		Short: "list all trackings",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var listResp ListTrackings
 			if err := readConfig(); err != nil {
 				return err
 			}
@@ -135,6 +135,7 @@ func trackingList() *cobra.Command {
 			}
 			ctx := context.TODO()
 			client.RequestEditors = append(client.RequestEditors, setBoxeeAuthHeaders(cParams.SessionToken))
+
 			resp, err := client.ListTrackings(ctx, &ListTrackingsParams{
 				DeviceId: deviceId,
 			})
@@ -143,9 +144,17 @@ func trackingList() *cobra.Command {
 			}
 			body, _ := ioutil.ReadAll(resp.Body)
 			resp.Body.Close()
-			json.Unmarshal(body, &listResp)
+			switch resp.StatusCode {
+			case http.StatusOK:
+				var listResp ListTrackings
+				json.Unmarshal(body, &listResp)
+				json.NewEncoder(os.Stdout).Encode(listResp)
+			default:
+				var defaultResp StandardResponse
+				json.Unmarshal(body, &defaultResp)
+				json.NewEncoder(os.Stdout).Encode(defaultResp)
+			}
 
-			json.NewEncoder(os.Stdout).Encode(listResp)
 			return nil
 		},
 	}
