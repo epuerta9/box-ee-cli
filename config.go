@@ -40,7 +40,7 @@ func getInitCommand() *cobra.Command {
 		},
 	}
 	initCommand.Flags().StringVarP(&Email, "email", "e", "", "email used to register")
-	initCommand.Flags().StringVarP(&Address, "address", "a", "http://localhost:3000", "package place url address")
+	initCommand.Flags().StringVarP(&Address, "address", "a", "https://api.box-ee.com", "box-ee server")
 
 	//make email and password required
 	initCommand.MarkFlagRequired("email")
