@@ -10,7 +10,7 @@ ifndef $(spec)
 	exit 1
 endif
 
-build-cli:
+build:
 	go build -ldflags="-X main.BuildVersion=$(version)" && \
 	go build -o bin/boxee 
 
