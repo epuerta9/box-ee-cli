@@ -171,8 +171,11 @@ type DeleteDeviceParams struct {
 
 // FindDeviceParams defines parameters for FindDevice.
 type FindDeviceParams struct {
-	// pass a required device_id
-	DeviceId string `form:"device_id" json:"device_id"`
+	// pass a device_id
+	DeviceId *string `form:"device_id,omitempty" json:"device_id,omitempty"`
+
+	// pass a device_name
+	DeviceName *string `form:"device_name,omitempty" json:"device_name,omitempty"`
 }
 
 // UpdateDeviceJSONBody defines parameters for UpdateDevice.
@@ -727,16 +730,36 @@ func NewFindDeviceRequest(server string, params *FindDeviceParams) (*http.Reques
 
 	queryValues := queryURL.Query()
 
-	if queryFrag, err := runtime.StyleParamWithLocation("form", true, "device_id", runtime.ParamLocationQuery, params.DeviceId); err != nil {
-		return nil, err
-	} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-		return nil, err
-	} else {
-		for k, v := range parsed {
-			for _, v2 := range v {
-				queryValues.Add(k, v2)
+	if params.DeviceId != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "device_id", runtime.ParamLocationQuery, *params.DeviceId); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
 			}
 		}
+
+	}
+
+	if params.DeviceName != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "device_name", runtime.ParamLocationQuery, *params.DeviceName); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
 	}
 
 	queryURL.RawQuery = queryValues.Encode()

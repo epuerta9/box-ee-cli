@@ -42,10 +42,6 @@ func deviceAdd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var createdResponse DeviceCreatedResponse
 			//add a device
-			if err := checkEmptyFlags([]string{deviceName, deviceType}); err != nil {
-				return err
-			}
-
 			cParams := readValuesFromConfig()
 
 			client, err := NewClient(cParams.Address)
@@ -71,10 +67,8 @@ func deviceAdd() *cobra.Command {
 			return nil
 		},
 	}
-	deviceAddCmd.Flags().StringVarP(&deviceName, "name", "n", "", "specify a device name")
-	deviceAddCmd.Flags().StringVarP(&deviceType, "type", "t", "", "specify a device type")
-	deviceAddCmd.MarkFlagRequired("name")
-	deviceAddCmd.MarkFlagRequired("type")
+	deviceAddCmd.Flags().StringVarP(&deviceName, "name", "n", "default", "specify a device name")
+	deviceAddCmd.Flags().StringVarP(&deviceType, "type", "t", "main", "specify a device type")
 	return deviceAddCmd
 }
 func deviceGenerateKeys() *cobra.Command {
