@@ -121,8 +121,8 @@ type TrackingObjectModel struct {
 
 // TrackingRequestItem defines model for TrackingRequestItem.
 type TrackingRequestItem struct {
-	DeviceId       string `json:"device_id"`
-	TrackingNumber string `json:"tracking_number"`
+	DeviceId       *string `json:"device_id,omitempty"`
+	TrackingNumber string  `json:"tracking_number"`
 }
 
 // AdminLoginRequest defines model for adminLoginRequest.
@@ -217,7 +217,7 @@ type AddTrackingJSONBody = TrackingRequestItem
 // ListTrackingsParams defines parameters for ListTrackings.
 type ListTrackingsParams struct {
 	// get all tracking numbers in a device
-	DeviceId string `form:"device_id" json:"device_id"`
+	DeviceId *string `form:"device_id,omitempty" json:"device_id,omitempty"`
 }
 
 // UpdateDeviceJSONRequestBody defines body for UpdateDevice for application/json ContentType.
@@ -1198,16 +1198,20 @@ func NewListTrackingsRequest(server string, params *ListTrackingsParams) (*http.
 
 	queryValues := queryURL.Query()
 
-	if queryFrag, err := runtime.StyleParamWithLocation("form", true, "device_id", runtime.ParamLocationQuery, params.DeviceId); err != nil {
-		return nil, err
-	} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-		return nil, err
-	} else {
-		for k, v := range parsed {
-			for _, v2 := range v {
-				queryValues.Add(k, v2)
+	if params.DeviceId != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "device_id", runtime.ParamLocationQuery, *params.DeviceId); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
 			}
 		}
+
 	}
 
 	queryURL.RawQuery = queryValues.Encode()

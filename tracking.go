@@ -40,7 +40,7 @@ func trackingAdd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			//add a tracking
 			var addResp StandardResponse
-			if err := checkEmptyFlags([]string{trackingNumber, deviceId}); err != nil {
+			if err := checkEmptyFlags([]string{trackingNumber}); err != nil {
 				return err
 			}
 			readConfig()
@@ -53,11 +53,20 @@ func trackingAdd() *cobra.Command {
 			}
 			ctx := context.TODO()
 
+			//check if device id is passed
+			var payload TrackingRequestItem
+			if deviceId == "" {
+				payload = TrackingRequestItem{
+					TrackingNumber: trackingNumber,
+				}
+			} else {
+				payload = TrackingRequestItem{
+					DeviceId:       &deviceId,
+					TrackingNumber: trackingNumber,
+				}
+			}
 			client.RequestEditors = append(client.RequestEditors, setBoxeeAuthHeaders(cParams.SessionToken))
-			resp, err := client.AddTracking(ctx, TrackingRequestItem{
-				DeviceId:       deviceId,
-				TrackingNumber: trackingNumber,
-			})
+			resp, err := client.AddTracking(ctx, payload)
 			if err != nil {
 				return err
 			}
@@ -72,7 +81,6 @@ func trackingAdd() *cobra.Command {
 	trackingAddCmd.Flags().StringVarP(&trackingNumber, "tracking-number", "", "", "specify a tracking number")
 	trackingAddCmd.Flags().StringVarP(&deviceId, "device-id", "", "", "specify a device id")
 	trackingAddCmd.MarkFlagRequired("tracking-number")
-	trackingAddCmd.MarkFlagRequired("device-id")
 	return trackingAddCmd
 }
 func trackingDelete() *cobra.Command {
@@ -136,9 +144,16 @@ func trackingList() *cobra.Command {
 			ctx := context.TODO()
 			client.RequestEditors = append(client.RequestEditors, setBoxeeAuthHeaders(cParams.SessionToken))
 
-			resp, err := client.ListTrackings(ctx, &ListTrackingsParams{
-				DeviceId: deviceId,
-			})
+			var payload ListTrackingsParams
+			if deviceId == "" {
+				payload = ListTrackingsParams{}
+			} else {
+				payload = ListTrackingsParams{
+					DeviceId: &deviceId,
+				}
+			}
+
+			resp, err := client.ListTrackings(ctx, &payload)
 			if err != nil {
 				return err
 			}
@@ -159,7 +174,6 @@ func trackingList() *cobra.Command {
 		},
 	}
 	trackingListCmd.Flags().StringVarP(&deviceId, "device-id", "", "", "specify a device id")
-	trackingListCmd.MarkFlagRequired("device-id")
 
 	return trackingListCmd
 }
