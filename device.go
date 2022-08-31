@@ -80,9 +80,6 @@ func deviceGenerateKeys() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			//generate device api key
 			var keyGenResp DeviceKeyGenResponse
-			if err := checkEmptyFlags([]string{deviceId}); err != nil {
-				return err
-			}
 			if err := readConfig(); err != nil {
 				return err
 			}
@@ -94,10 +91,15 @@ func deviceGenerateKeys() *cobra.Command {
 			}
 			ctx := context.TODO()
 			client.RequestEditors = append(client.RequestEditors, setBoxeeAuthHeaders(cParams.SessionToken))
-
-			resp, err := client.GenKey(ctx, DeviceRequestKeyGen{
-				DeviceId: deviceId,
-			})
+			var request DeviceRequestKeyGen
+			if deviceId == "" {
+				request = DeviceRequestKeyGen{}
+			} else {
+				request = DeviceRequestKeyGen{
+					DeviceId: &deviceId,
+				}
+			}
+			resp, err := client.GenKey(ctx, request)
 
 			if err != nil {
 				return err
@@ -110,7 +112,6 @@ func deviceGenerateKeys() *cobra.Command {
 		},
 	}
 	deviceGenerateCmd.Flags().StringVarP(&deviceId, "id", "i", "", "specify a device id")
-	deviceGenerateCmd.MarkFlagRequired("id")
 	return deviceGenerateCmd
 }
 func deviceDelete() *cobra.Command {

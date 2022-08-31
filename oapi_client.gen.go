@@ -65,7 +65,7 @@ type DeviceRequestAdd struct {
 
 // DeviceRequestKeyGen defines model for DeviceRequestKeyGen.
 type DeviceRequestKeyGen struct {
-	DeviceId string `json:"device_id"`
+	DeviceId *string `json:"device_id,omitempty"`
 }
 
 // DeviceRequestPatch defines model for DeviceRequestPatch.
