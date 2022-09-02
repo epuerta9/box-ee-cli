@@ -36,6 +36,7 @@ func main() {
 	rootCmd.AddCommand(getTrackingCmd())
 	rootCmd.AddCommand(getLoginCmd())
 	rootCmd.AddCommand(getRegisterCmd())
+	rootCmd.AddCommand(getRecoverCmd())
 	rootCmd.AddCommand(versionCmd())
 
 	if err := rootCmd.Execute(); err != nil {
