@@ -145,9 +145,9 @@ type AdminRecoverRequest struct {
 
 // AdminRegisterResponseItem defines model for adminRegisterResponseItem.
 type AdminRegisterResponseItem struct {
-	Msg          string `json:"msg"`
-	SessionToken string `json:"session_token"`
-	StatusCode   int    `json:"status_code"`
+	Msg          string  `json:"msg"`
+	SessionToken *string `json:"session_token,omitempty"`
+	StatusCode   int     `json:"status_code"`
 }
 
 // BoxeeClientValidateResponse defines model for boxeeClientValidateResponse.
