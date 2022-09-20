@@ -14,7 +14,7 @@ build:
 	go build -ldflags="-X main.BuildVersion=$(version)" && \
 	go build -o bin/boxee 
 
-install-cli: build-cli
+install-cli: build
 	mv bin/boxee ~/.local/bin
 
 generate-code:

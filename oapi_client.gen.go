@@ -115,7 +115,7 @@ type TrackingGetResponse struct {
 type TrackingObjectModel struct {
 	DeviceId       string `json:"device_id"`
 	Id             string `json:"id"`
-	PinKey         int    `json:"pin_key"`
+	PinKey         string `json:"pin_key"`
 	TrackingNumber string `json:"tracking_number"`
 }
 
