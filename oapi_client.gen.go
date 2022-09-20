@@ -108,7 +108,7 @@ type TrackingGetResponse struct {
 	DeviceId string `json:"device_id"`
 	Id       string `json:"id"`
 	Name     string `json:"name"`
-	PinKey   int    `json:"pin_key"`
+	PinKey   string `json:"pin_key"`
 }
 
 // TrackingObjectModel defines model for TrackingObjectModel.
