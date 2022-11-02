@@ -49,12 +49,12 @@ type DeviceKeyGenResponse struct {
 
 // DeviceObjectModel defines model for DeviceObjectModel.
 type DeviceObjectModel struct {
-	Health    int                   `json:"health"`
-	Id        string                `json:"id"`
-	Name      string                `json:"name"`
-	Prefix    *string               `json:"prefix,omitempty"`
-	Trackings []TrackingObjectModel `json:"trackings"`
-	Type      string                `json:"type"`
+	Health    int                    `json:"health"`
+	Id        string                 `json:"id"`
+	Name      string                 `json:"name"`
+	Prefix    *string                `json:"prefix,omitempty"`
+	Trackings *[]TrackingObjectModel `json:"trackings,omitempty"`
+	Type      string                 `json:"type"`
 }
 
 // DeviceRequestAdd defines model for DeviceRequestAdd.
