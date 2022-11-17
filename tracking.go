@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -13,6 +15,7 @@ import (
 var (
 	trackingNumber string
 	trackingID     string
+	file           string
 )
 
 func getTrackingCmd() *cobra.Command {
@@ -28,7 +31,82 @@ func getTrackingCmd() *cobra.Command {
 	trackingCmd.AddCommand(trackingAdd())
 	trackingCmd.AddCommand(trackingList())
 	trackingCmd.AddCommand(trackingDelete())
+	trackingCmd.AddCommand(trackingAddFile())
+
 	return trackingCmd
+}
+
+func trackingAddFile() *cobra.Command {
+	trackingfileCmd := &cobra.Command{
+		Use:   "file",
+		Short: "select tracking numbers file",
+		Long: `
+		add a tracking via file. Required flags include tracking name and tracking type`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			//add a tracking
+			if err := checkEmptyFlags([]string{file}); err != nil {
+				return err
+			}
+			readConfig()
+			cParams := readValuesFromConfig()
+
+			readFile, err := os.Open(file)
+
+			if err != nil {
+				fmt.Println(err)
+			}
+			fileScanner := bufio.NewScanner(readFile)
+			fileScanner.Split(bufio.ScanLines)
+			var fileLines []string
+
+			for fileScanner.Scan() {
+				fileLines = append(fileLines, fileScanner.Text())
+			}
+
+			readFile.Close()
+
+			client, err := NewClient(cParams.Address)
+			if err != nil {
+				return err
+
+			}
+			ctx := context.TODO()
+
+			//check if device id is passed
+			var allResponses []StandardResponse
+
+			client.RequestEditors = append(client.RequestEditors, setBoxeeAuthHeaders(cParams.SessionToken))
+			for _, tn := range fileLines {
+				var payload TrackingRequestItem
+				var addResp StandardResponse
+				if deviceId == "" {
+					payload = TrackingRequestItem{
+						TrackingNumber: tn,
+					}
+				} else {
+					payload = TrackingRequestItem{
+						DeviceId:       &deviceId,
+						TrackingNumber: tn,
+					}
+				}
+				resp, err := client.AddTracking(ctx, payload)
+				if err != nil {
+					return err
+				}
+				body, _ := ioutil.ReadAll(resp.Body)
+				resp.Body.Close()
+				json.Unmarshal(body, &addResp)
+				allResponses = append(allResponses, addResp)
+			}
+
+			json.NewEncoder(os.Stdout).Encode(allResponses)
+			return nil
+		},
+	}
+	trackingfileCmd.Flags().StringVarP(&file, "file", "f", "", "specify a file")
+	trackingfileCmd.Flags().StringVarP(&deviceId, "device-id", "", "", "specify a device id")
+	trackingfileCmd.MarkFlagRequired("file")
+	return trackingfileCmd
 }
 
 func trackingAdd() *cobra.Command {
