@@ -10,6 +10,9 @@ ifndef $(spec)
 	exit 1
 endif
 
+get-release:
+	@git describe --tags `git rev-list --tags --max-count=1`
+	
 build:
 	go build -ldflags="-X main.BuildVersion=$(version)" && \
 	go build -o bin/boxee 

@@ -187,6 +187,15 @@ type AddDeviceJSONBody = DeviceRequestAdd
 // GenKeyJSONBody defines parameters for GenKey.
 type GenKeyJSONBody = DeviceRequestKeyGen
 
+// ListDevicesParams defines parameters for ListDevices.
+type ListDevicesParams struct {
+	// page number
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// number of items to be returned. Limit is 100
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // AdminLoginJSONBody defines parameters for AdminLogin.
 type AdminLoginJSONBody = AdminLoginRequest
 
@@ -218,6 +227,12 @@ type AddTrackingJSONBody = TrackingRequestItem
 type ListTrackingsParams struct {
 	// get all tracking numbers in a device
 	DeviceId *string `form:"device_id,omitempty" json:"device_id,omitempty"`
+
+	// page number
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// number of items to be returned. Limit is 100
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // UpdateDeviceJSONRequestBody defines body for UpdateDevice for application/json ContentType.
@@ -339,7 +354,7 @@ type ClientInterface interface {
 	GenKey(ctx context.Context, body GenKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListDevices request
-	ListDevices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ListDevices(ctx context.Context, params *ListDevicesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// AdminLogin request with any body
 	AdminLoginWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -479,8 +494,8 @@ func (c *Client) GenKey(ctx context.Context, body GenKeyJSONRequestBody, reqEdit
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListDevices(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListDevicesRequest(c.Server)
+func (c *Client) ListDevices(ctx context.Context, params *ListDevicesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListDevicesRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -893,7 +908,7 @@ func NewGenKeyRequestWithBody(server string, contentType string, body io.Reader)
 }
 
 // NewListDevicesRequest generates requests for ListDevices
-func NewListDevicesRequest(server string) (*http.Request, error) {
+func NewListDevicesRequest(server string, params *ListDevicesParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -910,6 +925,42 @@ func NewListDevicesRequest(server string) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	queryValues := queryURL.Query()
+
+	if params.Page != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Limit != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
@@ -1214,6 +1265,38 @@ func NewListTrackingsRequest(server string, params *ListTrackingsParams) (*http.
 
 	}
 
+	if params.Page != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "page", runtime.ParamLocationQuery, *params.Page); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Limit != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
 	queryURL.RawQuery = queryValues.Encode()
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -1292,7 +1375,7 @@ type ClientWithResponsesInterface interface {
 	GenKeyWithResponse(ctx context.Context, body GenKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*GenKeyResponse, error)
 
 	// ListDevices request
-	ListDevicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListDevicesResponse, error)
+	ListDevicesWithResponse(ctx context.Context, params *ListDevicesParams, reqEditors ...RequestEditorFn) (*ListDevicesResponse, error)
 
 	// AdminLogin request with any body
 	AdminLoginWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AdminLoginResponse, error)
@@ -1733,8 +1816,8 @@ func (c *ClientWithResponses) GenKeyWithResponse(ctx context.Context, body GenKe
 }
 
 // ListDevicesWithResponse request returning *ListDevicesResponse
-func (c *ClientWithResponses) ListDevicesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListDevicesResponse, error) {
-	rsp, err := c.ListDevices(ctx, reqEditors...)
+func (c *ClientWithResponses) ListDevicesWithResponse(ctx context.Context, params *ListDevicesParams, reqEditors ...RequestEditorFn) (*ListDevicesResponse, error) {
+	rsp, err := c.ListDevices(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}

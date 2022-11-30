@@ -204,6 +204,8 @@ func deviceUpdate() *cobra.Command {
 	return deviceUpdateCmd
 }
 func deviceList() *cobra.Command {
+	var page int
+	var limit int
 	deviceListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "list all devices",
@@ -222,7 +224,10 @@ func deviceList() *cobra.Command {
 			}
 			ctx := context.TODO()
 			client.RequestEditors = append(client.RequestEditors, setBoxeeAuthHeaders(cParams.SessionToken))
-			resp, err := client.ListDevices(ctx)
+			resp, err := client.ListDevices(ctx, &ListDevicesParams{
+				Page:  &page,
+				Limit: &limit,
+			})
 			if err != nil {
 				return err
 			}
@@ -233,6 +238,8 @@ func deviceList() *cobra.Command {
 			return nil
 		},
 	}
+	deviceListCmd.Flags().IntVarP(&page, "page", "p", 1, "specify page number")
+	deviceListCmd.Flags().IntVarP(&limit, "limit", "l", 20, "specify a number of items to return")
 
 	return deviceListCmd
 }

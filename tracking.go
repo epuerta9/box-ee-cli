@@ -205,6 +205,8 @@ func trackingDelete() *cobra.Command {
 }
 
 func trackingList() *cobra.Command {
+	var page int
+	var limit int
 	trackingListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "list all trackings",
@@ -224,10 +226,15 @@ func trackingList() *cobra.Command {
 
 			var payload ListTrackingsParams
 			if deviceId == "" {
-				payload = ListTrackingsParams{}
+				payload = ListTrackingsParams{
+					Page:  &page,
+					Limit: &limit,
+				}
 			} else {
 				payload = ListTrackingsParams{
 					DeviceId: &deviceId,
+					Page:     &page,
+					Limit:    &limit,
 				}
 			}
 
@@ -252,6 +259,8 @@ func trackingList() *cobra.Command {
 		},
 	}
 	trackingListCmd.Flags().StringVarP(&deviceId, "device-id", "", "", "specify a device id")
+	trackingListCmd.Flags().IntVarP(&page, "page", "p", 1, "specify page number")
+	trackingListCmd.Flags().IntVarP(&limit, "limit", "l", 20, "specify a number of items to return")
 
 	return trackingListCmd
 }
